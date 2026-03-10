@@ -699,21 +699,33 @@
     }
 
     function saveCollage() {
-        // Render collage to a data URL
+        // Render collage to a high-res canvas
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = PREVIEW_W * 2;
-        tempCanvas.height = PREVIEW_H * 2;
+        tempCanvas.width = OUTPUT_W;
+        tempCanvas.height = OUTPUT_H;
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.scale(2, 2);
         tempCtx.fillStyle = '#ffffff';
-        tempCtx.fillRect(0, 0, PREVIEW_W, PREVIEW_H);
+        tempCtx.fillRect(0, 0, OUTPUT_W, OUTPUT_H);
         const layout = getCurrentLayout();
         if (layout) {
-            const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+            const scaleX = OUTPUT_W / PREVIEW_W;
+            const scaleY = OUTPUT_H / PREVIEW_H;
+            const scaledGap = GAP * scaleX;
+            const slots = getSlotRects(layout, OUTPUT_W, OUTPUT_H, scaledGap);
             state.collageImages.forEach((imgData, i) => {
-                if (i < slots.length) drawImageInSlot(tempCtx, imgData, slots[i]);
+                if (i < slots.length) {
+                    const scaledData = {
+                        img: imgData.img,
+                        rotation: imgData.rotation,
+                        zoom: imgData.zoom,
+                        panX: imgData.panX * scaleX,
+                        panY: imgData.panY * scaleY
+                    };
+                    drawImageInSlot(tempCtx, scaledData, slots[i]);
+                }
             });
         }
+        state.savedCollageCanvas = tempCanvas;
         state.savedCollageUrl = tempCanvas.toDataURL('image/png');
         state.imageMode = 'collage';
         state.singleImage = null;
