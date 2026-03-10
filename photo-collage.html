@@ -403,7 +403,14 @@
         state.singleImage = img;
         state.savedCollageUrl = null;
         state.savedCollageCanvas = null;
-        state.collageImages = [];() {
+        state.collageImages = [];
+        showThumbnail(img.src);
+        btnGenerate.disabled = false;
+        hideOutput();
+        fileSingle.value = '';
+    }
+
+    async function handleMultipleUpload() {
         const files = Array.from(fileMultiple.files);
         if (!files.length) return;
         fileMultiple.value = '';
