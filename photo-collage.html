@@ -899,7 +899,9 @@
     }
 
     function drawCover(ctx, img, x, y, w, h) {
-        const imgAspect = img.naturalWidth / img.naturalHeight;
+        const srcW = img.naturalWidth || img.width;
+        const srcH = img.naturalHeight || img.height;
+        const imgAspect = srcW / srcH;
         const slotAspect = w / h;
         let dw, dh;
         if (imgAspect > slotAspect) { dh = h; dw = h * imgAspect; }
