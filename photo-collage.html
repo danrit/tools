@@ -420,14 +420,8 @@
             state.imageMode = 'single';
             state.singleImage = img;
             state.savedCollageUrl = null;
-            state.collageImages = [];
-            showThumbnail(img.src);
-            btnGenerate.disabled = false;
-            hideOutput();
-            return;
-        }
-
-        const toLoad = files.slice(0, 4);
+            state.savedCollageCanvas = null;
+            state.collageImages = []; = files.slice(0, 4);
         const images = await Promise.all(toLoad.map(f => loadImage(f)));
         openEditor(images);
     }
