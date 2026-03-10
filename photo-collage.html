@@ -402,14 +402,8 @@
         state.imageMode = 'single';
         state.singleImage = img;
         state.savedCollageUrl = null;
-        state.collageImages = [];
-        showThumbnail(img.src);
-        btnGenerate.disabled = false;
-        hideOutput();
-        fileSingle.value = '';
-    }
-
-    async function handleMultipleUpload() {
+        state.savedCollageCanvas = null;
+        state.collageImages = [];() {
         const files = Array.from(fileMultiple.files);
         if (!files.length) return;
         fileMultiple.value = '';
