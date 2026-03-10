@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Collage Tool</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f0f2f5;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        h1 { text-align: center; font-size: 1.6rem; margin-bottom: 20px; color: #0f172a; }
+        .container { max-width: 520px; margin: 0 auto; }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        }
+        .card-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .input-row { display: flex; flex-direction: column; gap: 8px; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        textarea { resize: vertical; min-height: 72px; }
+        .checkbox-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.88rem; color: #475569; cursor: pointer;
+        }
+        .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: #3b82f6; }
+
+        .upload-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 18px; border-radius: 8px; font-size: 0.92rem; font-weight: 500;
+            cursor: pointer; border: none; transition: all 0.15s; font-family: inherit;
+        }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+        .btn-outline { background: #fff; color: #2563eb; border: 2px solid #2563eb; }
+        .btn-outline:hover:not(:disabled) { background: #eff6ff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-danger:hover:not(:disabled) { background: #dc2626; }
+        .btn-small { padding: 7px 14px; font-size: 0.84rem; }
+        .btn-icon { padding: 7px 10px; font-size: 1.1rem; min-width: 36px; }
+        .btn-full { width: 100%; }
+
+        #thumbnail-container { margin-top: 14px; text-align: center; position: relative; }
+        #thumbnail-container img {
+            max-width: 100%; max-height: 200px;
+            border-radius: 8px; border: 1px solid #e2e8f0;
+        }
+        .remove-badge {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(0,0,0,0.55); color: #fff; border: none;
+            border-radius: 50%; width: 26px; height: 26px;
+            font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 12px;
+        }
+        .modal-content {
+            background: #fff; border-radius: 16px; padding: 22px;
+            max-width: 560px; width: 100%; max-height: 92vh; overflow-y: auto;
+        }
+        .modal-content h2 { text-align: center; margin-bottom: 14px; font-size: 1.2rem; }
+
+        .editor-preview-container { position: relative; width: 100%; margin-bottom: 14px; }
+        #editor-canvas {
+            width: 100%; display: block; border-radius: 8px;
+            cursor: pointer; touch-action: none; user-select: none;
+        }
+
+        .layout-section { margin-bottom: 14px; }
+        .layout-section h3 {
+            font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px;
+            color: #64748b; margin-bottom: 8px; text-align: center; font-weight: 600;
+        }
+        .layout-options { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .layout-option {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.15s; padding: 8px;
+            background: #fff; color: #64748b;
+        }
+        .layout-option:hover { border-color: #3b82f6; color: #3b82f6; }
+        .layout-option.active { border-color: #2563eb; background: #2563eb; color: #fff; }
+        .layout-option svg { width: 100%; height: 100%; }
+
+        #image-controls { margin: 14px 0; }
+        .controls-section { margin-bottom: 10px; }
+        .controls-section h3 {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px;
+            color: #94a3b8; text-align: center; margin-bottom: 6px;
+        }
+        .controls-row { display: flex; justify-content: center; gap: 8px; align-items: center; }
+        .divider { width: 1px; height: 28px; background: #e2e8f0; margin: 0 6px; }
+
+        .editor-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .editor-actions .btn { flex: 1; }
+
+        #output-section { margin-top: 22px; }
+        #output-section h2 { text-align: center; margin-bottom: 14px; font-size: 1.1rem; }
+        #output-canvas { width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; display: block; }
+        #download-link {
+            display: block; text-align: center; margin-top: 12px; text-decoration: none;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <h1>📷 Photo Collage</h1>
+
+    <!-- Date -->
+    <div class="card">
+        <div class="card-title">Date</div>
+        <div class="input-row">
+            <input type="text" id="date-input" placeholder="DD/MM/YYYY">
+            <label class="checkbox-label">
+                <input type="checkbox" id="include-date" checked>
+                Include date in collage
+            </label>
+        </div>
+    </div>
+
+    <!-- Description -->
+    <div class="card">
+        <div class="card-title">Description</div>
+        <div class="input-row">
+            <textarea id="description" placeholder="Enter a description…" rows="3"></textarea>
+            <label class="checkbox-label">
+                <input type="checkbox" id="include-desc" checked>
+                Include description in collage
+            </label>
+        </div>
+    </div>
+
+    <!-- Image -->
+    <div class="card">
+        <div class="card-title">Image</div>
+        <div class="upload-buttons">
+            <button class="btn btn-outline btn-small" id="btn-single">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="6" cy="6.5" r="1.5"/><path d="M2 11l3-3 2 2 3-4 4 5"/></svg>
+                Single Image
+            </button>
+            <button class="btn btn-outline btn-small" id="btn-multiple">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="10" height="10" rx="1.5"/><rect x="5" y="1" width="10" height="10" rx="1.5"/></svg>
+                Photo Collage
+            </button>
+        </div>
+        <div id="thumbnail-container" class="hidden">
+            <img id="thumbnail" alt="Preview">
+            <button class="remove-badge" id="btn-remove" title="Remove image">✕</button>
+        </div>
+    </div>
+
+    <!-- Generate -->
+    <button class="btn btn-primary btn-full" id="btn-generate" disabled>Generate Collage</button>
+
+    <!-- Output -->
+    <div id="output-section" class="hidden">
+        <h2>Your Collage</h2>
+        <canvas id="output-canvas"></canvas>
+        <a class="btn btn-primary btn-full" id="download-link" download="photo-collage.png">⬇ Download</a>
+    </div>
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="file-single" accept="image/*" style="display:none">
+<input type="file" id="file-multiple" accept="image/*" multiple style="display:none">
+<input type="file" id="file-add" accept="image/*" style="display:none">
+<input type="file" id="file-replace" accept="image/*" style="display:none">
+
+<!-- Collage Editor Modal -->
+<div id="collage-editor" class="modal hidden">
+    <div class="modal-content">
+        <h2>Photo Collage</h2>
+        <div class="editor-preview-container">
+            <canvas id="editor-canvas"></canvas>
+        </div>
+        <div class="layout-section">
+            <h3>Layout</h3>
+            <div id="layout-options" class="layout-options"></div>
+        </div>
+        <div style="text-align:center; margin-bottom:14px;">
+            <button class="btn btn-outline btn-small" id="btn-add-photo">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                Add a Photo
+            </button>
+        </div>
+        <div id="image-controls" class="hidden">
+            <div class="controls-section">
+                <h3>Crop</h3>
+                <div class="controls-row">
+                    <button class="btn btn-outline btn-small" id="btn-rotate">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 7a6 6 0 0111.5-2.3"/><path d="M12.5 1v3.7h-3.7"/></svg>
+                        Rotate
+                    </button>
+                    <div class="divider"></div>
+                    <button class="btn btn-outline btn-icon" id="btn-zoom-out">−</button>
+                    <button class="btn btn-outline btn-icon" id="btn-zoom-in">+</button>
+                </div>
+            </div>
+            <div class="controls-section">
+                <h3>Edit</h3>
+                <div class="controls-row">
+                    <button class="btn btn-outline btn-small" id="btn-replace-img">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="2"/><path d="M1 10l3-3 2 2 3-4 4 5"/></svg>
+                        Replace
+                    </button>
+                    <button class="btn btn-danger btn-small" id="btn-delete-img">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M11 4v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="editor-actions">
+            <button class="btn btn-outline" id="btn-cancel">Cancel</button>
+            <button class="btn btn-primary" id="btn-save">Save</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+(function() {
+    'use strict';
+
+    // ==================== Constants ====================
+    const OUTPUT_W = 1200, OUTPUT_H = 800;
+    const PREVIEW_W = 600, PREVIEW_H = 400;
+    const GAP = 4;
+
+    // ==================== Layout Definitions ====================
+    const LAYOUTS = {
+        2: [
+            { slots: [{x:0,y:0,w:1,h:.5},{x:0,y:.5,w:1,h:.5}] },
+            { slots: [{x:0,y:0,w:.5,h:1},{x:.5,y:0,w:.5,h:1}] },
+            { slots: [{x:0,y:0,w:.65,h:1},{x:.65,y:0,w:.35,h:1}] },
+            { slots: [{x:0,y:0,w:1,h:.35},{x:0,y:.35,w:1,h:.65}] },
+            { slots: [{x:0,y:0,w:.35,h:1},{x:.35,y:0,w:.65,h:1}] }
+        ],
+        3: [
+            { slots: [{x:0,y:0,w:.5,h:.5},{x:.5,y:0,w:.5,h:.5},{x:0,y:.5,w:1,h:.5}] },
+            { slots: [{x:0,y:0,w:1,h:.5},{x:0,y:.5,w:.5,h:.5},{x:.5,y:.5,w:.5,h:.5}] },
+            { slots: [{x:0,y:0,w:.5,h:1},{x:.5,y:0,w:.5,h:.5},{x:.5,y:.5,w:.5,h:.5}] },
+            { slots: [{x:0,y:0,w:1/3,h:1},{x:1/3,y:0,w:1/3,h:1},{x:2/3,y:0,w:1/3,h:1}] }
+        ],
+        4: [
+            { slots: [{x:0,y:0,w:.5,h:.5},{x:.5,y:0,w:.5,h:.5},{x:0,y:.5,w:.5,h:.5},{x:.5,y:.5,w:.5,h:.5}] },
+            { slots: [{x:0,y:0,w:.5,h:1},{x:.5,y:0,w:.5,h:1/3},{x:.5,y:1/3,w:.5,h:1/3},{x:.5,y:2/3,w:.5,h:1/3}] },
+            { slots: [{x:0,y:0,w:.5,h:1/3},{x:0,y:1/3,w:.5,h:1/3},{x:0,y:2/3,w:.5,h:1/3},{x:.5,y:0,w:.5,h:1}] }
+        ]
+    };
+
+    // ==================== State ====================
+    const state = {
+        date: null,
+        includeDate: true,
+        description: '',
+        includeDescription: true,
+        imageMode: null, // null | 'single' | 'collage'
+        singleImage: null,
+        collageImages: [],  // [{img, rotation, zoom, panX, panY}]
+        layoutCount: 2,
+        layoutIndex: 0,
+        selectedIdx: -1,
+        savedCollageUrl: null,
+    };
+
+    // Drag state
+    const drag = { active: false, isPan: false, srcIdx: -1, startX: 0, startY: 0, startPanX: 0, startPanY: 0, moved: false };
+
+    // ==================== DOM References ====================
+    const $ = id => document.getElementById(id);
+    const dateInput = $('date-input'), descInput = $('description');
+    const includeDateCb = $('include-date'), includeDescCb = $('include-desc');
+    const thumbnailContainer = $('thumbnail-container'), thumbnailImg = $('thumbnail');
+    const btnGenerate = $('btn-generate'), btnSingle = $('btn-single'), btnMultiple = $('btn-multiple');
+    const btnRemove = $('btn-remove');
+    const fileSingle = $('file-single'), fileMultiple = $('file-multiple');
+    const fileAdd = $('file-add'), fileReplace = $('file-replace');
+    const editorModal = $('collage-editor'), editorCanvas = $('editor-canvas');
+    const layoutOptionsEl = $('layout-options'), btnAddPhoto = $('btn-add-photo');
+    const imageControlsEl = $('image-controls');
+    const btnRotate = $('btn-rotate'), btnZoomIn = $('btn-zoom-in'), btnZoomOut = $('btn-zoom-out');
+    const btnReplaceImg = $('btn-replace-img'), btnDeleteImg = $('btn-delete-img');
+    const btnCancel = $('btn-cancel'), btnSave = $('btn-save');
+    const outputSection = $('output-section'), outputCanvas = $('output-canvas');
+    const downloadLink = $('download-link');
+
+    let editorCtx;
+
+    // ==================== Initialization ====================
+    function init() {
+        // Date picker
+        flatpickr(dateInput, {
+            dateFormat: 'd/m/Y',
+            allowInput: true,
+            onChange(dates) { state.date = dates[0] || null; }
+        });
+
+        // Checkboxes
+        includeDateCb.addEventListener('change', () => { state.includeDate = includeDateCb.checked; });
+        includeDescCb.addEventListener('change', () => { state.includeDescription = includeDescCb.checked; });
+        descInput.addEventListener('input', () => { state.description = descInput.value; });
+
+        // Upload buttons
+        btnSingle.addEventListener('click', () => fileSingle.click());
+        btnMultiple.addEventListener('click', () => fileMultiple.click());
+        btnRemove.addEventListener('click', removeImage);
+
+        fileSingle.addEventListener('change', handleSingleUpload);
+        fileMultiple.addEventListener('change', handleMultipleUpload);
+        fileAdd.addEventListener('change', handleAddPhoto);
+        fileReplace.addEventListener('change', handleReplacePhoto);
+
+        // Generate
+        btnGenerate.addEventListener('click', generateFinalOutput);
+
+        // Editor controls
+        btnAddPhoto.addEventListener('click', () => fileAdd.click());
+        btnRotate.addEventListener('click', rotateSelected);
+        btnZoomIn.addEventListener('click', () => zoomSelected(0.15));
+        btnZoomOut.addEventListener('click', () => zoomSelected(-0.15));
+        btnReplaceImg.addEventListener('click', () => fileReplace.click());
+        btnDeleteImg.addEventListener('click', deleteSelected);
+        btnCancel.addEventListener('click', cancelEditor);
+        btnSave.addEventListener('click', saveCollage);
+
+        // Canvas events
+        editorCanvas.addEventListener('pointerdown', onPointerDown);
+        editorCanvas.addEventListener('pointermove', onPointerMove);
+        editorCanvas.addEventListener('pointerup', onPointerUp);
+        editorCanvas.addEventListener('pointerleave', onPointerUp);
+
+        // Set up editor canvas
+        setupEditorCanvas();
+    }
+
+    function setupEditorCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        editorCanvas.width = PREVIEW_W * dpr;
+        editorCanvas.height = PREVIEW_H * dpr;
+        editorCtx = editorCanvas.getContext('2d');
+        editorCtx.scale(dpr, dpr);
+    }
+
+    // ==================== File Handling ====================
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = reader.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function handleSingleUpload() {
+        const file = fileSingle.files[0];
+        if (!file) return;
+        const img = await loadImage(file);
+        state.imageMode = 'single';
+        state.singleImage = img;
+        state.savedCollageUrl = null;
+        state.collageImages = [];
+        showThumbnail(img.src);
+        btnGenerate.disabled = false;
+        hideOutput();
+        fileSingle.value = '';
+    }
+
+    async function handleMultipleUpload() {
+        const files = Array.from(fileMultiple.files);
+        if (!files.length) return;
+        fileMultiple.value = '';
+
+        if (files.length === 1) {
+            const img = await loadImage(files[0]);
+            state.imageMode = 'single';
+            state.singleImage = img;
+            state.savedCollageUrl = null;
+            state.collageImages = [];
+            showThumbnail(img.src);
+            btnGenerate.disabled = false;
+            hideOutput();
+            return;
+        }
+
+        const toLoad = files.slice(0, 4);
+        const images = await Promise.all(toLoad.map(f => loadImage(f)));
+        openEditor(images);
+    }
+
+    async function handleAddPhoto() {
+        const file = fileAdd.files[0];
+        if (!file) return;
+        fileAdd.value = '';
+        if (state.collageImages.length >= 4) return;
+        const img = await loadImage(file);
+        state.collageImages.push({ img, rotation: 0, zoom: 1, panX: 0, panY: 0 });
+        state.layoutCount = state.collageImages.length;
+        state.layoutIndex = 0;
+        state.selectedIdx = -1;
+        updateEditorUI();
+    }
+
+    async function handleReplacePhoto() {
+        const file = fileReplace.files[0];
+        if (!file) return;
+        fileReplace.value = '';
+        if (state.selectedIdx < 0) return;
+        const img = await loadImage(file);
+        state.collageImages[state.selectedIdx] = { img, rotation: 0, zoom: 1, panX: 0, panY: 0 };
+        updateEditorUI();
+    }
+
+    // ==================== Main Screen ====================
+    function showThumbnail(src) {
+        thumbnailImg.src = src;
+        thumbnailContainer.classList.remove('hidden');
+    }
+
+    function removeImage() {
+        state.imageMode = null;
+        state.singleImage = null;
+        state.savedCollageUrl = null;
+        state.collageImages = [];
+        thumbnailContainer.classList.add('hidden');
+        btnGenerate.disabled = true;
+        hideOutput();
+    }
+
+    function hideOutput() {
+        outputSection.classList.add('hidden');
+    }
+
+    // ==================== Collage Editor ====================
+    function openEditor(images) {
+        state.collageImages = images.map(img => ({
+            img, rotation: 0, zoom: 1, panX: 0, panY: 0
+        }));
+        state.layoutCount = images.length;
+        state.layoutIndex = 0;
+        state.selectedIdx = -1;
+        editorModal.classList.remove('hidden');
+        updateEditorUI();
+    }
+
+    function updateEditorUI() {
+        renderLayoutOptions();
+        btnAddPhoto.disabled = state.collageImages.length >= 4;
+        updateImageControls();
+        renderEditorPreview();
+    }
+
+    function renderLayoutOptions() {
+        layoutOptionsEl.innerHTML = '';
+        const layouts = LAYOUTS[state.layoutCount];
+        if (!layouts) return;
+        layouts.forEach((layout, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'layout-option' + (i === state.layoutIndex ? ' active' : '');
+            btn.appendChild(createLayoutIcon(layout));
+            btn.addEventListener('click', () => {
+                state.layoutIndex = i;
+                state.selectedIdx = -1;
+                constrainAllPans();
+                updateEditorUI();
+            });
+            layoutOptionsEl.appendChild(btn);
+        });
+    }
+
+    function createLayoutIcon(layout) {
+        const s = 28, g = 1.5;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', `0 0 ${s} ${s}`);
+        svg.setAttribute('width', s);
+        svg.setAttribute('height', s);
+        layout.slots.forEach(slot => {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', slot.x * s + g);
+            rect.setAttribute('y', slot.y * s + g);
+            rect.setAttribute('width', Math.max(0, slot.w * s - g * 2));
+            rect.setAttribute('height', Math.max(0, slot.h * s - g * 2));
+            rect.setAttribute('rx', 1.5);
+            rect.setAttribute('fill', 'currentColor');
+            svg.appendChild(rect);
+        });
+        return svg;
+    }
+
+    function updateImageControls() {
+        if (state.selectedIdx >= 0 && state.selectedIdx < state.collageImages.length) {
+            imageControlsEl.classList.remove('hidden');
+        } else {
+            imageControlsEl.classList.add('hidden');
+        }
+    }
+
+    function getCurrentLayout() {
+        return LAYOUTS[state.layoutCount]?.[state.layoutIndex] || LAYOUTS[state.layoutCount]?.[0];
+    }
+
+    function getSlotRects(layout, cw, ch, gap) {
+        return layout.slots.map(s => ({
+            x: s.x * cw + gap / 2,
+            y: s.y * ch + gap / 2,
+            w: s.w * cw - gap,
+            h: s.h * ch - gap
+        }));
+    }
+
+    // ==================== Canvas Rendering ====================
+    function renderEditorPreview() {
+        const ctx = editorCtx;
+        const dpr = window.devicePixelRatio || 1;
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, PREVIEW_W, PREVIEW_H);
+        ctx.restore();
+
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, PREVIEW_W, PREVIEW_H);
+
+        const layout = getCurrentLayout();
+        if (!layout) return;
+        const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+
+        state.collageImages.forEach((imgData, i) => {
+            if (i >= slots.length) return;
+            drawImageInSlot(ctx, imgData, slots[i]);
+        });
+
+        // Draw selection highlight
+        if (state.selectedIdx >= 0 && state.selectedIdx < slots.length) {
+            const s = slots[state.selectedIdx];
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(s.x + 1.5, s.y + 1.5, s.w - 3, s.h - 3);
+        }
+    }
+
+    function drawImageInSlot(ctx, imageData, slot) {
+        const { img, rotation, zoom, panX, panY } = imageData;
+        const { x, y, w, h } = slot;
+        const rot = ((rotation % 360) + 360) % 360;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.clip();
+
+        const cx = x + w / 2 + panX;
+        const cy = y + h / 2 + panY;
+        ctx.translate(cx, cy);
+        ctx.rotate(rot * Math.PI / 180);
+
+        // Effective image dimensions after rotation
+        const effW = (rot === 90 || rot === 270) ? img.naturalHeight : img.naturalWidth;
+        const effH = (rot === 90 || rot === 270) ? img.naturalWidth : img.naturalHeight;
+        const imgAspect = effW / effH;
+        const slotAspect = w / h;
+
+        let drawW, drawH;
+        if (imgAspect > slotAspect) { drawH = h; drawW = h * imgAspect; }
+        else { drawW = w; drawH = w / imgAspect; }
+        drawW *= zoom;
+        drawH *= zoom;
+
+        // In rotated coord system, swap draw dimensions for 90/270
+        let origW, origH;
+        if (rot === 90 || rot === 270) { origW = drawH; origH = drawW; }
+        else { origW = drawW; origH = drawH; }
+
+        ctx.drawImage(img, -origW / 2, -origH / 2, origW, origH);
+        ctx.restore();
+    }
+
+    function getCoverDims(img, rotation, zoom, slotW, slotH) {
+        const rot = ((rotation % 360) + 360) % 360;
+        const effW = (rot === 90 || rot === 270) ? img.naturalHeight : img.naturalWidth;
+        const effH = (rot === 90 || rot === 270) ? img.naturalWidth : img.naturalHeight;
+        const imgAspect = effW / effH;
+        const slotAspect = slotW / slotH;
+        let dw, dh;
+        if (imgAspect > slotAspect) { dh = slotH; dw = slotH * imgAspect; }
+        else { dw = slotW; dh = slotW / imgAspect; }
+        return { drawW: dw * zoom, drawH: dh * zoom };
+    }
+
+    function constrainPan(imgData, slotW, slotH) {
+        const { drawW, drawH } = getCoverDims(imgData.img, imgData.rotation, imgData.zoom, slotW, slotH);
+        const maxPx = Math.max(0, (drawW - slotW) / 2);
+        const maxPy = Math.max(0, (drawH - slotH) / 2);
+        imgData.panX = Math.max(-maxPx, Math.min(maxPx, imgData.panX));
+        imgData.panY = Math.max(-maxPy, Math.min(maxPy, imgData.panY));
+    }
+
+    function constrainAllPans() {
+        const layout = getCurrentLayout();
+        if (!layout) return;
+        const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+        state.collageImages.forEach((imgData, i) => {
+            if (i < slots.length) constrainPan(imgData, slots[i].w, slots[i].h);
+        });
+    }
+
+    // ==================== Image Manipulation ====================
+    function rotateSelected() {
+        if (state.selectedIdx < 0) return;
+        const imgData = state.collageImages[state.selectedIdx];
+        imgData.rotation = (imgData.rotation + 90) % 360;
+        imgData.panX = 0;
+        imgData.panY = 0;
+        constrainAllPans();
+        renderEditorPreview();
+    }
+
+    function zoomSelected(delta) {
+        if (state.selectedIdx < 0) return;
+        const imgData = state.collageImages[state.selectedIdx];
+        imgData.zoom = Math.max(1, Math.min(5, imgData.zoom + delta));
+        const layout = getCurrentLayout();
+        const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+        if (state.selectedIdx < slots.length) {
+            constrainPan(imgData, slots[state.selectedIdx].w, slots[state.selectedIdx].h);
+        }
+        renderEditorPreview();
+    }
+
+    function deleteSelected() {
+        if (state.selectedIdx < 0) return;
+        state.collageImages.splice(state.selectedIdx, 1);
+        state.selectedIdx = -1;
+        if (state.collageImages.length < 2) {
+            // Only 1 or 0 images left — exit editor
+            if (state.collageImages.length === 1) {
+                state.imageMode = 'single';
+                state.singleImage = state.collageImages[0].img;
+                showThumbnail(state.singleImage.src);
+                btnGenerate.disabled = false;
+            }
+            state.collageImages = [];
+            editorModal.classList.add('hidden');
+            return;
+        }
+        state.layoutCount = state.collageImages.length;
+        state.layoutIndex = 0;
+        updateEditorUI();
+    }
+
+    function cancelEditor() {
+        editorModal.classList.add('hidden');
+        state.collageImages = [];
+    }
+
+    function saveCollage() {
+        // Render collage to a data URL
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = PREVIEW_W * 2;
+        tempCanvas.height = PREVIEW_H * 2;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.scale(2, 2);
+        tempCtx.fillStyle = '#ffffff';
+        tempCtx.fillRect(0, 0, PREVIEW_W, PREVIEW_H);
+        const layout = getCurrentLayout();
+        if (layout) {
+            const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+            state.collageImages.forEach((imgData, i) => {
+                if (i < slots.length) drawImageInSlot(tempCtx, imgData, slots[i]);
+            });
+        }
+        state.savedCollageUrl = tempCanvas.toDataURL('image/png');
+        state.imageMode = 'collage';
+        state.singleImage = null;
+        showThumbnail(state.savedCollageUrl);
+        btnGenerate.disabled = false;
+        editorModal.classList.add('hidden');
+        hideOutput();
+    }
+
+    // ==================== Pointer Events (Editor) ====================
+    function canvasCoords(e) {
+        const rect = editorCanvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) / rect.width * PREVIEW_W,
+            y: (e.clientY - rect.top) / rect.height * PREVIEW_H
+        };
+    }
+
+    function slotAtPoint(px, py) {
+        const layout = getCurrentLayout();
+        if (!layout) return -1;
+        const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+        for (let i = slots.length - 1; i >= 0; i--) {
+            const s = slots[i];
+            if (px >= s.x && px <= s.x + s.w && py >= s.y && py <= s.y + s.h) return i;
+        }
+        return -1;
+    }
+
+    function onPointerDown(e) {
+        e.preventDefault();
+        editorCanvas.setPointerCapture(e.pointerId);
+        const { x, y } = canvasCoords(e);
+        const idx = slotAtPoint(x, y);
+        if (idx < 0 || idx >= state.collageImages.length) return;
+
+        drag.active = true;
+        drag.srcIdx = idx;
+        drag.startX = x;
+        drag.startY = y;
+        drag.moved = false;
+
+        // If this slot is selected and zoomed → pan mode
+        const imgData = state.collageImages[idx];
+        if (idx === state.selectedIdx && imgData.zoom > 1) {
+            drag.isPan = true;
+            drag.startPanX = imgData.panX;
+            drag.startPanY = imgData.panY;
+        } else {
+            drag.isPan = false;
+        }
+    }
+
+    function onPointerMove(e) {
+        if (!drag.active) return;
+        e.preventDefault();
+        const { x, y } = canvasCoords(e);
+        const dx = x - drag.startX, dy = y - drag.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+
+        if (drag.isPan && drag.srcIdx >= 0) {
+            const imgData = state.collageImages[drag.srcIdx];
+            imgData.panX = drag.startPanX + dx;
+            imgData.panY = drag.startPanY + dy;
+            const layout = getCurrentLayout();
+            const slots = getSlotRects(layout, PREVIEW_W, PREVIEW_H, GAP);
+            if (drag.srcIdx < slots.length) constrainPan(imgData, slots[drag.srcIdx].w, slots[drag.srcIdx].h);
+            renderEditorPreview();
+        }
+    }
+
+    function onPointerUp(e) {
+        if (!drag.active) { drag.active = false; return; }
+        const { x, y } = canvasCoords(e);
+
+        if (!drag.moved) {
+            // Click → select/deselect
+            const idx = slotAtPoint(x, y);
+            state.selectedIdx = (idx === state.selectedIdx) ? -1 : idx;
+            updateImageControls();
+            renderEditorPreview();
+        } else if (!drag.isPan) {
+            // Drag → swap if target differs
+            const targetIdx = slotAtPoint(x, y);
+            if (targetIdx >= 0 && targetIdx !== drag.srcIdx && targetIdx < state.collageImages.length) {
+                const tmp = state.collageImages[drag.srcIdx];
+                state.collageImages[drag.srcIdx] = state.collageImages[targetIdx];
+                state.collageImages[targetIdx] = tmp;
+                state.selectedIdx = -1;
+                updateImageControls();
+                constrainAllPans();
+                renderEditorPreview();
+            }
+        }
+        drag.active = false;
+        drag.isPan = false;
+    }
+
+    // ==================== Final Output ====================
+    function generateFinalOutput() {
+        const canvas = outputCanvas;
+        canvas.width = OUTPUT_W;
+        canvas.height = OUTPUT_H;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, OUTPUT_W, OUTPUT_H);
+
+        const hasDate = state.includeDate && state.date;
+        const hasDesc = state.includeDescription && state.description.trim();
+
+        // Measure text area
+        let textH = 0;
+        if (hasDate || hasDesc) {
+            textH = 30; // top padding
+            if (hasDate) { textH += 36; if (hasDesc) textH += 8; }
+            if (hasDesc) {
+                ctx.font = '22px -apple-system, BlinkMacSystemFont, sans-serif';
+                const lines = wrapText(ctx, state.description.trim(), OUTPUT_W - 100);
+                textH += lines.length * 28;
+            }
+            textH += 24; // bottom padding
+            textH = Math.min(textH, OUTPUT_H * 0.3);
+        }
+
+        const imageH = OUTPUT_H - textH;
+
+        // Draw image
+        if (state.imageMode === 'single' && state.singleImage) {
+            drawCover(ctx, state.singleImage, 0, 0, OUTPUT_W, imageH);
+        } else if (state.imageMode === 'collage' && state.collageImages.length >= 2) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, OUTPUT_W, imageH);
+            const layout = getCurrentLayout();
+            if (layout) {
+                const scaledGap = GAP * (OUTPUT_W / PREVIEW_W);
+                const slots = getSlotRects(layout, OUTPUT_W, imageH, scaledGap);
+                state.collageImages.forEach((imgData, i) => {
+                    if (i < slots.length) {
+                        // Scale pan values
+                        const scaleX = OUTPUT_W / PREVIEW_W;
+                        const scaleY = imageH / PREVIEW_H;
+                        const scaledData = {
+                            ...imgData,
+                            panX: imgData.panX * scaleX,
+                            panY: imgData.panY * scaleY
+                        };
+                        drawImageInSlot(ctx, scaledData, slots[i]);
+                    }
+                });
+            }
+        }
+
+        // Draw text area
+        if (textH > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, imageH, OUTPUT_W, textH);
+            // Subtle separator
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(50, imageH + 0.5);
+            ctx.lineTo(OUTPUT_W - 50, imageH + 0.5);
+            ctx.stroke();
+
+            let ty = imageH + 30;
+            if (hasDate) {
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(formatDate(state.date), OUTPUT_W / 2, ty);
+                ty += 36;
+                if (hasDesc) ty += 8;
+            }
+            if (hasDesc) {
+                ctx.fillStyle = '#475569';
+                ctx.font = '22px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                const lines = wrapText(ctx, state.description.trim(), OUTPUT_W - 100);
+                lines.forEach(line => { ctx.fillText(line, OUTPUT_W / 2, ty); ty += 28; });
+            }
+        }
+
+        // Download link
+        downloadLink.href = canvas.toDataURL('image/png');
+        outputSection.classList.remove('hidden');
+        outputSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function drawCover(ctx, img, x, y, w, h) {
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        const slotAspect = w / h;
+        let dw, dh;
+        if (imgAspect > slotAspect) { dh = h; dw = h * imgAspect; }
+        else { dw = w; dh = w / imgAspect; }
+        ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    }
+
+    // ==================== Utilities ====================
+    function formatDate(d) {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function wrapText(ctx, text, maxW) {
+        const result = [];
+        text.split('\n').forEach(para => {
+            if (!para.trim()) { result.push(''); return; }
+            let line = '';
+            para.split(' ').forEach(word => {
+                const test = line ? line + ' ' + word : word;
+                if (ctx.measureText(test).width > maxW && line) {
+                    result.push(line);
+                    line = word;
+                } else {
+                    line = test;
+                }
+            });
+            if (line) result.push(line);
+        });
+        return result;
+    }
+
+    // ==================== Start ====================
+    init();
+})();
+</script>
+</body>
+</html>
